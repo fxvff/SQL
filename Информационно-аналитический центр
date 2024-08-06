@@ -1,0 +1,426 @@
+Задание: Выбрать пациентов:
+•	у которых пол мужской
+•	у которых дата рождение больше 25.08.2013
+•	у которых пустое отчество, установлен пол, есть любой номер телефона и заполнен адрес
+•	двойников, у которых одинаковые ФИО
+•	двойников, у которых одинаковые ФИО и дата рождения 
+У всех выборок должны быть поля: № пациента, дата рождения, возраст, ФИО в одну ячейку, адрес, паспортные данные , телефоны
+
+
+•	у которых пол мужской
+SELECT 
+    num AS "№ пациента",
+    birthdate AS "Дата рождения",
+    lastname || ', ' || firstname || ' ' || secondname AS "ФИО",
+    street1 || ', ' || house1 || ', ' || corp1 || ', ' || flat1 AS "Адрес",
+    'Серия: '|| passser || ', Номер: ' || passnumb || ', Кем и когда выдан ' || passissue || ' ' || passdate AS "Паспортные данные",
+    cellular AS "Телефоны"
+FROM patient
+WHERE sex = 0;
+•	у которых дата рождение больше 25.08.2013
+SELECT 
+    num AS "№ пациента",
+    birthdate AS "Дата рождения",
+    lastname || ', ' || firstname || ' ' || secondname AS "ФИО",
+    street1 || ', ' || house1 || ', ' || corp1 || ', ' || flat1 AS "Адрес",
+    'Серия: '|| passser || ', Номер: ' || passnumb || ', Кем и когда выдан ' || passissue || ' ' || passdate AS "Паспортные данные",
+    cellular AS "Телефоны",
+    TRUNC(MONTHS_BETWEEN(sysdate, birthdate) / 12) AS "Age"
+FROM patient
+WHERE birthdate > TO_DATE('25.08.2013', 'DD.MM.YYYY')
+ORDER BY birthdate;
+•	у которых пустое отчество, установлен пол, есть любой номер телефона и заполнен адрес
+SELECT 
+    num AS "№ пациента",
+    birthdate AS "Дата рождения",
+    lastname || ', ' || firstname || ' ' || secondname AS "ФИО",
+    street1 || ', ' || house1 || ', ' || corp1 || ', ' || flat1 AS "Адрес",
+    'Серия: '|| passser || ', Номер: ' || passnumb || ', Кем и когда выдан ' || passissue || ' ' || passdate AS "Паспортные данные",
+    cellular AS "Телефоны",
+    TRUNC(MONTHS_BETWEEN(sysdate, birthdate) / 12) AS "Age"
+FROM patient
+WHERE secondname IS NULL
+    AND cellular IS NOT NULL
+    AND (street1 IS NOT NULL AND house1 IS NOT NULL OR corp1 IS NOT NULL AND flat1 IS NOT NULL)
+•	двойников, у которых одинаковые ФИО
+
+SELECT 
+    p1.num AS "№ пациента",
+    p1.birthdate AS "Дата рождения",
+    p1.lastname || ', ' || p1.firstname || ' ' || p1.secondname AS "ФИО",
+    p1.street1 || ', ' || p1.house1 || ', ' || p1.corp1 || ', ' || p1.flat1 AS "Адрес",
+    'Серия: '|| p1.passser || ', Номер: ' || p1.passnumb || ', Кем и когда выдан ' || p1.passissue || ' ' || p1.passdate AS "Паспортные данные",
+    p1.cellular AS "Телефоны",
+    TRUNC(MONTHS_BETWEEN(sysdate, p1.birthdate) / 12) AS "Age"
+FROM patient p1
+INNER JOIN (
+    SELECT
+        lastname,
+        firstname,
+        secondname
+    FROM patient
+    GROUP BY lastname, firstname, secondname
+    HAVING COUNT(*) > 1
+) p2 ON p1.lastname = p2.lastname AND p1.firstname = p2.firstname AND p1.secondname = p2.secondname
+ORDER BY p1.lastname, p1.firstname, p1.secondname;
+•	двойников, у которых одинаковые ФИО и дата рождения 
+SELECT 
+    p1.num AS "№ пациента",
+    p1.birthdate AS "Дата рождения",
+    p1.lastname || ', ' || p1.firstname || ' ' || p1.secondname AS "ФИО",
+    p1.street1 || ', ' || p1.house1 || ', ' || p1.corp1 || ', ' || p1.flat1 AS "Адрес",
+    'Серия: '|| p1.passser || ', Номер: ' || p1.passnumb || ', Кем и когда выдан ' || p1.passissue || ' ' || p1.passdate AS "Паспортные данные",
+    p1.cellular AS "Телефоны",
+    TRUNC(MONTHS_BETWEEN(sysdate, p1.birthdate) / 12) AS "Age"
+FROM patient p1
+INNER JOIN (
+    SELECT
+        lastname,
+        firstname,
+        secondname,
+        birthdate
+    FROM patient
+    GROUP BY lastname, firstname, secondname, birthdate
+    HAVING COUNT(*) > 1
+) p2 ON p1.lastname = p2.lastname 
+           AND p1.firstname = p2.firstname 
+           AND p1.secondname = p2.secondname
+           AND p1.birthdate = p2.birthdate
+ORDER BY p1.lastname, p1.firstname, p1.secondname, p1.birthdate;
+
+
+
+2.•	Все услуги  конкретного пациента ( НА ПРИМЕРЕ ПАНФЕРОВОЙ АЛЕНЫ ДМИТРИЕВНЫ) 
+
+SELECT 
+    s.patientId AS "№ пациента",
+    p.lastname || ', ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    s.SRV_STATUS AS "Статус услуги",
+    s.keyid AS "Код услуги",
+    s.docid_exec AS "Выполнивший врач",
+    s.docid_nurse AS "Медсестра",
+    s.createby AS "Кто создал услугу"
+FROM Patient p
+INNER JOIN Patserv s ON p.keyid = s.patientId
+WHERE p.lastname = 'панферова' 
+    AND p.firstname = 'алена' 
+    AND p.secondname = 'дмитриевна';
+•	Все услуги за любой период по всем пациентам (с 19.10.2023 – 23.10.2023)
+
+SELECT 
+    s.patientId AS "№ пациента",
+    p.lastname || ', ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    s.SRV_STATUS AS "Статус услуги",
+    s.keyid AS "Код услуги",
+    s.docid_exec AS "Выполнивший врач",
+    s.docid_nurse AS "Медсестра",
+    s.createby AS "Кто создал услугу"
+FROM Patient p
+INNER JOIN Patserv s ON p.keyid = s.patientId
+WHERE  s.dat BETWEEN TO_DATE('2023-10-19', 'YYYY-MM-DD') AND TO_DATE('2023-10-23', 'YYYY-MM-DD');
+
+3.•	Все услуги  конкретного пациента, которые выставлены в оплату
+SELECT 
+    s.patientId AS "№ пациента",
+    p.lastname || ' ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    s.SRV_STATUS AS "Статус услуги",
+    s.keyid AS "Код услуги",
+    s.docid_exec AS "Выполнивший врач",
+    s.docid_nurse AS "Медсестра",
+    i.amount AS "Сумма к оплате",
+    i.Dat AS "Дата услуги",
+    i.paydat AS "Дата оплаты",
+    i.agrid AS "Шифр"
+FROM Patient p
+INNER JOIN Patserv s ON p.keyid = s.patientId
+INNER JOIN Invoice i ON p.keyid = i.patientId
+WHERE p.lastname = 'тестовый' 
+AND BILLID > 0
+•	Все услуги за любой период по всем пациентам, которые выставлены в оплату
+
+SELECT 
+    s.patientId AS "№ пациента",
+    p.lastname || ' ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    s.SRV_STATUS AS "Статус услуги",
+    s.keyid AS "Код услуги",
+    s.docid_exec AS "Выполнивший врач",
+    s.docid_nurse AS "Медсестра",
+    i.amount AS "Сумма к оплате",
+    i.Dat AS "Дата услуги",
+    i.paydat AS "Дата оплаты",
+    i.agrid AS "Шифр"
+FROM Patient p
+INNER JOIN Patserv s ON p.keyid = s.patientId
+INNER JOIN Invoice i ON p.keyid = i.patientId
+WHERE  s.dat BETWEEN TO_DATE('2023-10-19', 'YYYY-MM-DD') AND TO_DATE('2023-10-23', 'YYYY-MM-DD');
+
+
+
+4. •	Все услуги  конкретного пациента, которые находятся в кассе
+
+SELECT p.num,
+       p.lastname || ' ' || p.firstname || ' ' || p.secondname as FIO,
+       pv.srv_status,
+       pv.status,
+       pv.srvdepid,
+       srv.text,
+       pay.price,
+       pay.discount,
+       pay.amount,
+       vr.text doctor,
+       nurse.text nurse,
+       pv.createby,
+       pv.dat,
+       inv.createdate,
+       inv.agrid
+  FROM Patserv pv
+ INNER JOIN Patient p    ON pv.patientid = p.keyid
+ INNER JOIN INVOICE inv  ON inv.patservid = pv.keyid
+ INNER JOIN Payserv pay  ON pay.keyid = pv.payservid
+  LEFT JOIN Srvdep srv   ON srv.keyid = pv.srvdepid
+  LEFT JOIN Payserv pay  ON pay.keyid = pv.payservid
+  LEFT JOIN Docdep vr    ON vr.keyid = pv.docid_exec
+  LEFT JOIN Docdep nurse ON nurse.keyid = pv.docid_nurse
+ WHERE p.num = 2030
+
+•	Все услуги за любой период по всем пациентам, которые находятся в кассе
+SELECT p.num,
+       p.lastname || ' ' || p.firstname || ' ' || p.secondname as FIO,
+       pv.srv_status,
+       pv.status,
+       pv.srvdepid,
+       srv.text,
+       pay.price,
+       pay.discount,
+       pay.amount,
+       vr.text doctor,
+       nurse.text nurse,
+       pv.createby,
+       pv.dat,
+       inv.createdate,
+       inv.agrid
+  FROM Patserv pv
+ INNER JOIN Patient p    ON pv.patientid = p.keyid
+ INNER JOIN INVOICE inv  ON inv.patservid = pv.keyid
+ INNER JOIN Payserv pay  ON pay.keyid = pv.payservid
+  LEFT JOIN Srvdep srv   ON srv.keyid = pv.srvdepid
+  LEFT JOIN Payserv pay  ON pay.keyid = pv.payservid
+  LEFT JOIN Docdep vr    ON vr.keyid = pv.docid_exec
+  LEFT JOIN Docdep nurse ON nurse.keyid = pv.docid_nurse
+ WHERE pv.dat BETWEEN TO_DATE('01.01.2023', 'dd.mm.yyyy') AND TO_DATE('01.05.2023', 'dd.mm.yyyy')
+
+5. 
+SELECT 
+  p.num as "№ пациента",
+  p.lastname || ' ' || p.firstname || ' ' || p.secondname as "ФИО",
+  v.status as "Статус",
+  dc.text doctor,
+  v.dat as "Дата"
+FROM visit v
+INNER JOIN Patient p ON p.keyid = v.patientid
+left join docdep dc on dc.keyid = v.doctorid
+where p.num = 1999
+
+6.
+SELECT 
+  p.num as "# пациента",
+  p.lastname || ' ' || p.firstname || ' ' || p.secondname as "ФИО",
+  v.status as "Статус",
+  d.text doctor,
+  v.dat as "Дата посещения",
+  pd.text diagid,
+  pd.diagcode as "Код диагноза",
+  pd.diagtype as "Тип диагноза",
+  pd.text illtypeid
+ From Visit v
+ INNER JOIN Patient p  ON p.keyid    = v.patientid
+  LEFT JOIN Docdep d  ON d.keyid   = v.doctorid
+  LEFT JOIN Patdiag pd ON pd.visitid = v.keyid
+  LEFT JOIN Diagnos di ON di.keyid   = pd.diagid
+ WHERE p.num = 1043
+
+7.
+•	Расписание врача за конкретный день
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+WHERE doc.text LIKE '%Вайбеков%' AND to_char(rn.dat, 'dd.mm.yyyy') = '01.10.2023'
+•	Расписание врача за конкретный день с обычными и интервальными номерками
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+WHERE doc.text LIKE '%Вайбеков%' 
+AND to_char(rn.dat, 'dd.mm.yyyy') = '01.10.2023'
+AND time_type = 0 (ЛИБО 1 ДЛЯ ИНТЕРВАЛЬНЫХ НОМЕРКОВ) 
+•	Расписание врача за конкретный день, у которого есть пациенты
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+INNER JOIN patient p ON p.keyid = rn.patientid
+WHERE doc.text LIKE '%Вайбеков%' 
+AND to_char(rn.dat, 'dd.mm.yyyy') = '16.10.2023'
+AND patientid = p.keyid
+•	Расписание врача за конкретный день, у которого есть блокировка номерка
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+WHERE doc.text LIKE '%Амбулаторов%' 
+AND to_char(rn.dat, 'dd.mm.yyyy') = '03.07.2023'
+AND blstatus = 0
+•	Все дополнительные номерки
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+WHERE dopstatus = 1
+•	Все дни, где есть интервальное расписание
+
+SELECT 
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка"
+FROM rperiod rp
+INNER JOIN rday rd ON rp.keyid = rd.rperiodid
+INNER JOIN rnumb rn ON rd.keyid = rn.rdayid
+INNER JOIN Docdep doc ON doc.keyid = rp.docdepid
+WHERE time_type = 1
+
+8.
+•	Расписание врача за конкретный день
+(Вопрос про тип и комментарий – почему то не подвязываются)
+SELECT distinct
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка",
+    vi.patientid AS "№ пациента",
+    p.lastname || ' ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    TRUNC(MONTHS_BETWEEN(sysdate, birthdate) / 12) AS "Возраст"
+FROM rnumb rn
+     INNER JOIN visit vi ON  rn.keyid = vi.patientid  
+     INNER JOIN patient p ON vi.patientid = p.keyid
+     INNER JOIN Docdep doc ON doc.keyid = rn.docdepid
+
+WHERE doc.text LIKE '%Абов%' AND to_char(rn.dat, 'dd.mm.yyyy') = '16.06.2011'
+Расписание врача за конкретный день, у которого есть пациенты
+SELECT distinct
+    rn.dat AS "Дата номерка",
+    doc.text AS "Врач",
+    rn.time_type AS "Тип номерка",
+    rn.note AS "комментарий",
+    rn.status AS "Статус Номерка",
+    vi.patientid AS "№ пациента",
+    p.lastname || ' ' || p.firstname || ' ' || p.secondname AS "ФИО",
+    TRUNC(MONTHS_BETWEEN(sysdate, birthdate) / 12) AS "Возраст"
+FROM rnumb rn
+     INNER JOIN visit vi ON  rn.keyid = vi.patientid  
+     INNER JOIN patient p ON vi.patientid = p.keyid
+     INNER JOIN Docdep doc ON doc.keyid = rn.docdepid
+
+WHERE doc.text LIKE '%Абов%' AND to_char(rn.dat, 'dd.mm.yyyy') = '16.06.2011'
+AND rn.patientid = p.keyid
+
+9. 
+SELECT distinct
+        pat.createdate,
+        doc.text doctor,
+        doc_vis.text prinyal,
+        srv.code,
+        srv.text name_srv
+  FROM Patserv pat
+ INNER JOIN VISIT vis      ON vis.keyid = pat.visitid
+  LEFT JOIN Docdep doc     ON doc.keyid = pat.docid_exec
+ INNER JOIN Docdep doc_vis ON doc_vis.keyid = vis.doctorid
+  LEFT JOIN Srvdep srv     ON srv.keyid = pat.srvdepid
+  WHERE pat.srv_status = 1
+
+10.
+
+SELECT
+  LU.keyid AS "Код спраочника",
+  LU.text AS "Наименоване",
+  LU.code AS "Значение",
+  LU.createdate AS "Дата создания",
+  LU.updateby AS "Кем изменена запись"
+FROM LU
+WHERE tag = 317
+
+
+11.
+SELECT 
+  MAN.keyid AS "Пользователь",
+  MAN.text AS "ФИО",
+  MAN.pass AS "Пароль",
+  MAN.Doctorid AS "Сотрудник"
+FROM man ,doctor d where d.keyid = man.doctorid
+SELECT (SELECT l.text FROM lu l WHERE l.keyid = d.staffid), d.* FROM doctor d (ОТДЕЛЬНЫЙ ЗАПРОС, КОТОРЫЙ ПОКАЖЕТ)
+
+12.
+
+SELECT 
+  d.text AS "ФИО",
+  d.tabnum AS "Табельный номер", 
+  d.depid AS "Отделение",
+  d.positionid AS "Должность",
+  d.specid AS "Специальность",
+  d.sertificate AS "Сертификаты"
+FROM DOCTOR d
+ LEFT JOIN Lu sp ON sp.keyid = d.specid
+ LEFT JOIN Lu po ON po.keyid = d.positionid
+
+13.
+
+SELECT 
+  d.text AS "ФИО",
+  doc.tabnum AS "Табельный номер",
+  d.depid AS "Отделение",
+  po.text AS "Должность",
+  sp.text AS "Специальность",
+  doc.text AS "ФИО Сотрудника"
+FROM DOCDEP d
+INNER JOIN DOCTOR doc ON doc.keyid = d.docid
+INNER JOIN lu sp ON sp.keyid = d.specid
+INNER JOIN lu po ON po.keyid = doc.positionid
+Where sp.text LIKE '%Уролог%'
